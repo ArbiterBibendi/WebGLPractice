@@ -1,10 +1,17 @@
 
 const URL = "http://localhost:5500";
-const triangleVertices = [
-    0, 0.5, 1, 0, 0, 1,
-    -0.5, -0.5, 0, 1, 0, 1,
-    0.5, -0.5, 0, 0, 1, 1
+
+const triangleVerticesPosition = [
+    0, 0.5,
+    -0.5, -0.5,
+    0.5, -0.5
 ]
+const triangleVerticesColor = [
+    1, 0, 0, 1,
+    0, 1, 0, 1,
+    0, 0, 1, 1
+]
+
 const main =  async () => {
     const canvas = document.querySelector("#glcanvas");
     const gl = canvas.getContext("webgl2");
@@ -26,15 +33,21 @@ const main =  async () => {
     const positionAttributeLocation = gl.getAttribLocation(program, "a_position");
     const colorAttributeLocation = gl.getAttribLocation(program, "a_color");
 
-    const positionAndColorBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionAndColorBuffer);
-    
     const vao = gl.createVertexArray();
     gl.bindVertexArray(vao);
+    
+    
+    const positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVerticesPosition), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(positionAttributeLocation);
-    gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 24, 0);
+    gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+    
+    const colorBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVerticesColor), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(colorAttributeLocation);
-    gl.vertexAttribPointer(colorAttributeLocation, 4, gl.FLOAT, false, 24, 8);
+    gl.vertexAttribPointer(colorAttributeLocation, 4, gl.FLOAT, false, 0, 0);
 
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
@@ -44,7 +57,6 @@ const main =  async () => {
     const primitiveType = gl.TRIANGLES;
     const offset = 0;
     const count = 3;
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVertices), gl.STATIC_DRAW);
     gl.drawArrays(primitiveType, offset, count);
 }
 const createShader = (gl, type, source) => {
