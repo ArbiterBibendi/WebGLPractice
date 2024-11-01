@@ -1,33 +1,34 @@
 const URL = "http://localhost:5500";
 
-const triangleVerticesPosition = [-0.5, 0.5, -1, -0.5, 0, -0.5];
-const triangleVerticesPosition2 = [0.5, 0.5, 0, -0.5, 1, -0.5];
-const triangleVerticesColor = [1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1];
-const triangleVerticesColor2 = [1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1];
+let gl = null;
+let positionBuffer = null;
+let colorBuffer = null;
 
-const main = async () => {
+export const init = async () => {
   const canvas = document.querySelector("#glcanvas");
-  const gl = canvas.getContext("webgl2");
+  gl = canvas.getContext("webgl2");
 
   if (gl === null) {
     console.error("Unable to initialize WebGL");
     return;
   }
-  resizeCanvasIfNeeded(canvas);
+  _resizeCanvasIfNeeded(canvas);
 
-  const program = await initializeDefaultShaderProgram(gl);
+  const program = await _initializeDefaultShaderProgram(gl);
   const positionAttributeLocation = gl.getAttribLocation(program, "a_position");
   const colorAttributeLocation = gl.getAttribLocation(program, "a_color");
+  const translationLocation = gl.getUniformLocation(program, "u_translation");
+
 
   const vao = gl.createVertexArray();
   gl.bindVertexArray(vao);
 
-  const positionBuffer = gl.createBuffer();
+  positionBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
   gl.enableVertexAttribArray(positionAttributeLocation);
   gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
 
-  const colorBuffer = gl.createBuffer();
+  colorBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
   gl.enableVertexAttribArray(colorAttributeLocation);
   gl.vertexAttribPointer(colorAttributeLocation, 4, gl.FLOAT, false, 0, 0);
@@ -35,25 +36,9 @@ const main = async () => {
   gl.viewport(0, 0, canvas.width, canvas.height);
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT);
-
-  drawTriangle(
-    gl,
-    positionBuffer,
-    colorBuffer,
-    triangleVerticesPosition,
-    triangleVerticesColor,
-    program
-  );
-  drawTriangle(
-    gl,
-    positionBuffer,
-    colorBuffer,
-    triangleVerticesPosition2,
-    triangleVerticesColor2,
-    program
-  );
+  gl.useProgram(program);
 };
-const createShader = (gl, type, source) => {
+const _createShader = (gl, type, source) => {
   const shader = gl.createShader(type);
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
@@ -65,7 +50,7 @@ const createShader = (gl, type, source) => {
   console.log(gl.getShaderInfoLog(shader));
   gl.deleteShader(shader);
 };
-const createProgram = (gl, vertexShader, fragmentShader) => {
+const _createProgram = (gl, vertexShader, fragmentShader) => {
   const program = gl.createProgram();
   gl.attachShader(program, vertexShader);
   gl.attachShader(program, fragmentShader);
@@ -79,38 +64,38 @@ const createProgram = (gl, vertexShader, fragmentShader) => {
   console.log(gl.getProgramInfoLog(program));
   gl.deleteProgram(program);
 };
-const getVertexShaderSource = async () => {
-  const response = await fetch(`${URL}/vertexshader.glsl`);
+const _getVertexShaderSource = async () => {
+  const response = await fetch(`${URL}/engine/shaders/vertexshader.glsl`);
   if (response.ok) {
     return await response.text();
   }
   console.error("Couldn't get vertex shader source");
 };
-const getFragmentShaderSource = async () => {
-  const response = await fetch(`${URL}/fragmentshader.glsl`);
+const _getFragmentShaderSource = async () => {
+  const response = await fetch(`${URL}/engine/shaders/fragmentshader.glsl`);
   if (response.ok) {
     return await response.text();
   }
   console.error("Couldn't get fragment shader source");
 };
-const initializeDefaultShaderProgram = async (gl) => {
-  const vertexShaderSource = await getVertexShaderSource();
-  const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+const _initializeDefaultShaderProgram = async (gl) => {
+  const vertexShaderSource = await _getVertexShaderSource();
+  const vertexShader = _createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
 
-  const fragmentShaderSource = await getFragmentShaderSource();
-  const fragmentShader = createShader(
+  const fragmentShaderSource = await _getFragmentShaderSource();
+  const fragmentShader = _createShader(
     gl,
     gl.FRAGMENT_SHADER,
     fragmentShaderSource
   );
 
-  const program = createProgram(gl, vertexShader, fragmentShader);
+  const program = _createProgram(gl, vertexShader, fragmentShader);
   if (program) {
     return program;
   }
   console.error("Error initializing default shader program");
 };
-const resizeCanvasIfNeeded = (canvas) => {
+const _resizeCanvasIfNeeded = (canvas) => {
   const displayWidth = canvas.clientWidth;
   const displayHeight = canvas.clientHeight;
   const needResize =
@@ -120,21 +105,23 @@ const resizeCanvasIfNeeded = (canvas) => {
     canvas.height = displayHeight;
   }
 };
-const drawTriangle = (
-  gl,
-  positionBuffer,
-  colorBuffer,
+export const DrawTriangle = (
   vertices,
-  color,
-  program
+  color = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 ) => {
-  gl.useProgram(program);
-
+  if (gl === null || positionBuffer === null || colorBuffer === null) {
+    console.log(`gl: ${gl}`);
+    console.log(`positionBuffer: ${positionBuffer}`);
+    console.log(`colorBuffer: ${colorBuffer}`);
+    console.error("GL is null, is the engine initialized?");
+    return;
+  }
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 
   gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(color), gl.STATIC_DRAW);
+
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 };
-main();
+ 
